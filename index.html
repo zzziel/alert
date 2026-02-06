@@ -19,7 +19,9 @@
   <p id="last"></p>
 
 <script>
-const FEED_URL = "https://pannchoa.com/feeds/posts/default?alt=json";
+const FEED_URL =
+  "https://api.allorigins.win/raw?url=" +
+  encodeURIComponent("https://pannchoa.com/feeds/posts/default?alt=json");
 const CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
 const STORAGE_KEY = "pannchoa_last_seen";
 
