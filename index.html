@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>pannchoa watcher</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; padding: 24px; }
+    .ok { color: #0a7; }
+    .err { color: #c33; }
+    .muted { color: #666; }
+  </style>
+</head>
+<body>
+  <h2>pannchoa post watcher</h2>
+  <p class="muted">watches the blogger feed and notifies you when a new post appears. keep this tab open.</p>
+
+  <p id="status">initializing…</p>
+  <p id="last"></p>
+
+<script>
+const FEED_URL = "https://pannchoa.com/feeds/posts/default?alt=json";
+const CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
+const STORAGE_KEY = "pannchoa_last_seen";
+
+async function checkFeed() {
+  const status = document.getElementById("status");
+  try {
+    status.textContent = "checking feed…";
+    status.className = "muted";
+
+    const res = await fetch(FEED_URL, { cache: "no-store" });
+    if (!res.ok) throw new Error("network error");
+
+    const data = await res.json();
+    const entry = data.feed.entry?.[0];
+    if (!entry) throw new Error("no entries found");
+
+    const id = entry.id.$t;
+    const title = entry.title.$t;
+    const link = entry.link.find(l => l.rel === "alternate").href;
+    const published = entry.published.$t;
+
+    const lastSeen = localStorage.getItem(STORAGE_KEY);
+
+    if (lastSeen && lastSeen !== id) {
+      notify(title, link);
+    }
+
+    localStorage.setItem(STORAGE_KEY, id);
+
+    document.getElementById("last").textContent =
+      "latest post: " + title + " (" + new Date(published).toLocaleString() + ")";
+
+    status.textContent = "feed ok · last checked " + new Date().toLocaleTimeString();
+    status.className = "ok";
+
+  } catch (err) {
+    status.textContent = "error checking feed: " + err.message;
+    status.className = "err";
+  }
+}
+
+function notify(title, link) {
+  if (Notification.permission === "granted") {
+    new Notification("new pannchoa post", { body: title });
+  }
+}
+
+if (Notification.permission === "default") {
+  Notification.requestPermission();
+}
+
+checkFeed();
+setInterval(checkFeed, CHECK_INTERVAL);
+</script>
+</body>
+</html>
